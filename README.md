@@ -1,45 +1,24 @@
 # Real-Time Motion Detection on ARM Cortex-A15
 
 ![Platform](https://img.shields.io/badge/platform-ARM%20Cortex--A15-blue)
-![Language](https://img.shields.io/badge/language-C99-informational)
+![Language](https://img.shields.io/badge/language-C-informational)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![QEMU](https://img.shields.io/badge/emulator-QEMU%20vexpress--a15-orange)
 ![Build](https://img.shields.io/badge/build-cross--compiled-lightgrey)
 
-A complete embedded motion-detection system written in **C99**, cross-compiled for **ARM Cortex-A15**, and running on **QEMU vexpress-a15** under a minimal Linux + BusyBox operating system.
+A complete embedded motion-detection system written in **C**, cross-compiled for **ARM Cortex-A15**, and running on **QEMU vexpress-a15** under a minimal Linux + BusyBox operating system.
 
 The system reads sequences of PGM images, crops a configurable Region of Interest, compares frames pixel-by-pixel through a **simulated FPGA pipeline**, classifies motion using an **adaptive decision-tree**, transmits alerts over **UART and TCP/IP** simultaneously, and logs every event with a full timestamp.
 
 ---
 
-## Screenshots
+## Preview
 
-| Dashboard | Architecture |
-|-----------|-------------|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Architecture](docs/screenshots/architecture.png) |
+| Dashboard | Terminal Output | Performance Chart |
+|-----------|----------------|-------------------|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Terminal](docs/screenshots/terminal_output.png) | ![Performance](docs/screenshots/performance_chart.png) |
 
-| Terminal Output | Performance Chart |
-|-----------------|------------------|
-| ![Terminal](docs/screenshots/terminal_output.png) | ![Performance](docs/screenshots/performance_chart.png) |
-
----
-
-## Features
-
-| Feature | Detail |
-|---------|--------|
-| **Adaptive Decision Tree** | Rolling 10-frame average; dynamic `lo = avg × 0.5`, `hi = avg × 1.5`; 3-frame warm-up with fixed thresholds |
-| **FPGA Pipeline Simulation** | 4-stage synchronous pipeline (FETCH → DIFF → COMPARE → ACCUM), 259 cycles per 16×16 frame, documented with VHDL comments |
-| **Terminal Heatmap** | UTF-8 block characters (░ ▒ ▓ █) visualise per-pixel change magnitude after each comparison |
-| **STD & SNR Metrics** | Standard deviation and signal-to-noise ratio computed from accumulated sum-of-squares; integer Babylonian sqrt |
-| **Dual Alert Channel** | UART (`/dev/ttyAMA0`) for MEDIUM+HIGH; TCP/IP (port 5000) for HIGH only |
-| **Web Dashboard** | Python HTTP server + Chart.js; live stat cards, timeline, donut chart, System Metrics panel |
-| **Static Binary** | No external runtime dependencies; 401 KB, runs on any ARMv7-A Linux |
-| **Reproducible Build** | `make` → `./build.sh` → QEMU launch; fully scripted |
-
----
-
-## System Architecture
+### System Architecture
 
 ```
 PGM Test Frames (200 files)
@@ -70,11 +49,26 @@ PGM Test Frames (200 files)
 
 ---
 
+## Features
+
+| Feature | Detail |
+|---------|--------|
+| **Adaptive Decision Tree** | Rolling 10-frame average; dynamic `lo = avg × 0.5`, `hi = avg × 1.5`; 3-frame warm-up with fixed thresholds |
+| **FPGA Pipeline Simulation** | 4-stage synchronous pipeline (FETCH → DIFF → COMPARE → ACCUM), 259 cycles per 16×16 frame, documented with VHDL comments |
+| **Terminal Heatmap** | UTF-8 block characters (░ ▒ ▓ █) visualise per-pixel change magnitude after each comparison |
+| **STD & SNR Metrics** | Standard deviation and signal-to-noise ratio computed from accumulated sum-of-squares; integer Babylonian sqrt |
+| **Dual Alert Channel** | UART (`/dev/ttyAMA0`) for MEDIUM+HIGH; TCP/IP (port 5000) for HIGH only |
+| **Web Dashboard** | Python HTTP server + Chart.js; live stat cards, timeline, donut chart, System Metrics panel |
+| **Static Binary** | No external runtime dependencies; 401 KB, runs on any ARMv7-A Linux |
+| **Reproducible Build** | `make` → `./build.sh` → QEMU launch; fully scripted |
+
+---
+
 ## Repository Structure
 
 ```
 motion-detect-arm/
-├── src/                        # C99 source — 10 modules, ~1 180 lines
+├── src/                        # C source — 10 modules, ~1 180 lines
 │   ├── main.c                  # Entry point, config parser
 │   ├── image_reader.{c,h}      # PGM P2 ASCII reader
 │   ├── roi_selector.{c,h}      # Region-of-interest crop
