@@ -26,14 +26,14 @@ PGM Test Frames (200 files)
          ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │  Processing Pipeline                                            │
-│  Image Reader → ROI Selector [FPGA] → Frame Comparator [FPGA]  │
+│  Image Reader → ROI Selector [FPGA] → Frame Comparator [FPGA]   |
 └────────────────────────────┬────────────────────────────────────┘
                              │  FrameDiff {changed, mean, std, snr}
                              ▼
               ┌──────────────────────────┐
               │  AI Classifier           │
               │  Adaptive Decision Tree  │
-              │  NONE / LOW / MEDIUM / HIGH
+              │NONE / LOW / MEDIUM / HIGH|
               └─────────────┬────────────┘
                             │  MotionLevel
                             ▼
@@ -42,9 +42,9 @@ PGM Test Frames (200 files)
               └──────┬──────────┬────────┘
                      │          │
           ┌──────────▼──┐  ┌────▼──────────────┐
-          │   Logger    │  │  UART Transmitter  │  TCP/IP Client
-          │ motion_log  │  │  /dev/ttyAMA0      │  port 5000
-          └─────────────┘  └────────────────────┘
+          │   Logger    │  │  UART Transmitter │  TCP/IP Client
+          │ motion_log  │  │  /dev/ttyAMA0     │  port 5000
+          └─────────────┘  └───────────────────┘
 ```
 
 ---
