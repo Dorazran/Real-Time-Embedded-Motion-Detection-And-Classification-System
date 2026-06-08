@@ -1,0 +1,13 @@
+{
+  "name": "motion-detect-arm-scripts",
+  "version": "1.0.0",
+  "description": "Report and asset generation scripts for motion-detect-arm",
+  "private": true,
+  "scripts": {
+    "report": "node generate_report.js",
+    "assets": "python3 make_assets.py"
+  },
+  "dependencies": {
+    "docx": "^8.5.0"
+  }
+}

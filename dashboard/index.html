@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motion Detection Dashboard — ARM Cortex-A15</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+/* ── Reset & tokens ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #0d1117;
+  --surface:     #161b22;
+  --surface2:    #1c2128;
+  --border:      #30363d;
+  --text:        #c9d1d9;
+  --muted:       #8b949e;
+  --accent:      #388bfd;
+
+  --c-none:      #6e7681;
+  --c-low:       #3fb950;
+  --c-medium:    #d29922;
+  --c-high:      #f85149;
+
+  --bg-none:     rgba(110,118,129,.12);
+  --bg-low:      rgba(63,185,80,.12);
+  --bg-medium:   rgba(210,153,34,.12);
+  --bg-high:     rgba(248,81,73,.12);
+
+  --font-mono:   "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  --font-sans:   -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius:      8px;
+  --radius-sm:   4px;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text);
+             font-family: var(--font-sans); font-size: 14px; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left h1 {
+  font-size: 16px; font-weight: 600; letter-spacing: .3px;
+  color: var(--text);
+}
+.header-left .subtitle {
+  font-size: 11px; color: var(--muted); font-family: var(--font-mono);
+  margin-top: 2px;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  border: 1px solid;
+}
+.live-badge.live   { color: var(--c-low);  border-color: var(--c-low);
+                     background: var(--bg-low); }
+.live-badge.offline{ color: var(--muted);  border-color: var(--border);
+                     background: transparent; }
+.live-badge.live .dot   { animation: pulse 1.4s ease-in-out infinite; }
+.live-badge.offline .dot{ opacity: .4; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.refresh-ctrl { display: flex; align-items: center; gap: 6px;
+                color: var(--muted); font-size: 12px; }
+.refresh-ctrl select {
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 3px 6px; font-size: 12px; cursor: pointer;
+}
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+section { margin-bottom: 20px; }
+.section-title {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--muted); margin-bottom: 12px;
+}
+
+/* ── Stat cards ─────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media(max-width:640px){ .stats-grid { grid-template-columns: repeat(2,1fr); } }
+
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+  transition: border-color .2s, box-shadow .2s;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {          /* left accent stripe */
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: var(--radius) 0 0 var(--radius);
+}
+.stat-card.none   { border-color: var(--c-none);  background: var(--bg-none);  }
+.stat-card.none::before   { background: var(--c-none);  }
+.stat-card.low    { border-color: var(--c-low);   background: var(--bg-low);   }
+.stat-card.low::before    { background: var(--c-low);   }
+.stat-card.medium { border-color: var(--c-medium);background: var(--bg-medium);}
+.stat-card.medium::before { background: var(--c-medium);}
+.stat-card.high   { border-color: var(--c-high);  background: var(--bg-high);  }
+.stat-card.high::before   { background: var(--c-high);  }
+
+.stat-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.stat-card.none   .stat-label { color: var(--c-none);   }
+.stat-card.low    .stat-label { color: var(--c-low);    }
+.stat-card.medium .stat-label { color: var(--c-medium); }
+.stat-card.high   .stat-label { color: var(--c-high);   }
+
+.stat-count {
+  font-size: 36px; font-weight: 700; line-height: 1;
+  font-family: var(--font-mono); color: var(--text);
+}
+.stat-sub {
+  font-size: 11px; color: var(--muted); margin-top: 4px;
+  font-family: var(--font-mono);
+}
+
+/* ── Charts row ─────────────────────────────────────────────────────────── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+}
+@media(max-width:900px){ .charts-row { grid-template-columns: 1fr; } }
+
+.chart-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+}
+.chart-panel h2 {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  margin-bottom: 14px;
+}
+.chart-wrap { position: relative; }
+.chart-wrap.timeline { height: 220px; }
+.chart-wrap.donut    { height: 220px; }
+
+/* ── Peak / last-seen summary inside dist panel ─────────────────────────── */
+.dist-meta {
+  margin-top: 12px; display: flex; flex-direction: column; gap: 6px;
+}
+.dist-meta-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; color: var(--muted);
+  padding: 4px 0; border-bottom: 1px solid var(--border);
+}
+.dist-meta-row:last-child { border-bottom: none; }
+.dist-meta-row span:last-child { font-family: var(--font-mono); color: var(--text); }
+
+/* ── Alert log table ────────────────────────────────────────────────────── */
+.log-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.log-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 14px 20px 0;
+}
+.log-header h2 { font-size: 13px; font-weight: 600; }
+.log-path {
+  font-size: 11px; color: var(--muted); font-family: var(--font-mono);
+  margin-left: 8px;
+}
+.log-count { font-size: 11px; color: var(--muted); }
+
+.table-wrap {
+  overflow-x: auto; overflow-y: auto;
+  max-height: 360px; margin-top: 12px;
+}
+table {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--font-mono); font-size: 12px;
+}
+thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--surface2); color: var(--muted);
+  font-size: 10px; font-weight: 600; letter-spacing: .6px;
+  text-transform: uppercase; text-align: left;
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+}
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+tbody tr:hover { background: var(--surface2); }
+tbody tr:last-child { border-bottom: none; }
+
+td { padding: 9px 14px; vertical-align: middle; }
+
+/* Row tint by level */
+tr.level-none   { }
+tr.level-low    { background: var(--bg-low);    }
+tr.level-medium { background: var(--bg-medium); }
+tr.level-high   { background: var(--bg-high);   }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: .6px;
+}
+.badge-none   { background: var(--bg-none);  color: var(--c-none);  border: 1px solid var(--c-none); }
+.badge-low    { background: var(--bg-low);   color: var(--c-low);   border: 1px solid var(--c-low);  }
+.badge-medium { background: var(--bg-medium);color: var(--c-medium);border: 1px solid var(--c-medium);}
+.badge-high   { background: var(--bg-high);  color: var(--c-high);  border: 1px solid var(--c-high); }
+
+/* Pixel-% sparkbar */
+.pct-bar-wrap {
+  display: flex; align-items: center; gap: 8px; min-width: 100px;
+}
+.pct-bar-track {
+  flex: 1; height: 6px; background: var(--border);
+  border-radius: 3px; overflow: hidden;
+}
+.pct-bar { height: 100%; border-radius: 3px; transition: width .3s; }
+.pct-val { min-width: 38px; text-align: right; color: var(--text); }
+
+/* ── Empty / loading states ──────────────────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 48px 24px; color: var(--muted);
+}
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state h3 { font-size: 15px; color: var(--text); margin-bottom: 8px; }
+.empty-state p  { font-size: 12px; line-height: 1.6; max-width: 420px; margin: 0 auto; }
+.empty-state code {
+  background: var(--surface2); border: 1px solid var(--border);
+  padding: 2px 6px; border-radius: 3px; font-family: var(--font-mono);
+  font-size: 11px; color: var(--accent);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+footer {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+  padding: 10px 24px; font-size: 11px; color: var(--muted);
+  border-top: 1px solid var(--border); background: var(--surface);
+}
+footer span { font-family: var(--font-mono); }
+
+/* ── System Metrics ─────────────────────────────────────────────────────── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media(max-width:640px){ .metrics-grid { grid-template-columns: 1fr; } }
+
+.metric-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px;
+}
+.metric-card h3 {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+}
+.metric-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.metric-row:last-child { border-bottom: none; }
+.metric-row .mr-label { color: var(--muted); }
+.metric-row .mr-val   { font-family: var(--font-mono); color: var(--text); }
+
+.mem-bar-wrap  { margin-top: 10px; }
+.mem-bar-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.mem-bar-track {
+  height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+}
+.mem-bar { height: 100%; border-radius: 4px; transition: width .4s; background: var(--accent); }
+
+.metrics-unavailable {
+  text-align: center; padding: 32px 24px; color: var(--muted); font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ── Header ───────────────────────────────────────────────────────────────── -->
+<header>
+  <div class="header-left">
+    <h1>Motion Detection Dashboard</h1>
+    <div class="subtitle">ARM Cortex-A15 &nbsp;|&nbsp; QEMU vexpress-a15 &nbsp;|&nbsp; FPGA Sim enabled</div>
+  </div>
+  <div class="header-right">
+    <div class="refresh-ctrl">
+      Refresh
+      <select id="refreshRate">
+        <option value="2000" selected>2 s</option>
+        <option value="5000">5 s</option>
+        <option value="10000">10 s</option>
+        <option value="0">pause</option>
+      </select>
+    </div>
+    <div class="live-badge offline" id="liveBadge">
+      <span class="dot">●</span>
+      <span id="liveLabel">CONNECTING</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────────── -->
+<main>
+
+  <!-- Stat cards -->
+  <section>
+    <div class="section-title">Detection Summary</div>
+    <div class="stats-grid">
+      <div class="stat-card none">
+        <div class="stat-label">NONE</div>
+        <div class="stat-count" id="countNone">—</div>
+        <div class="stat-sub" id="pctNone">0% of events</div>
+      </div>
+      <div class="stat-card low">
+        <div class="stat-label">LOW</div>
+        <div class="stat-count" id="countLow">—</div>
+        <div class="stat-sub" id="pctLow">0% of events</div>
+      </div>
+      <div class="stat-card medium">
+        <div class="stat-label">MEDIUM</div>
+        <div class="stat-count" id="countMedium">—</div>
+        <div class="stat-sub" id="pctMedium">0% of events</div>
+      </div>
+      <div class="stat-card high">
+        <div class="stat-label">HIGH</div>
+        <div class="stat-count" id="countHigh">—</div>
+        <div class="stat-sub" id="pctHigh">0% of events</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Charts -->
+  <section>
+    <div class="section-title">Analysis</div>
+    <div class="charts-row">
+
+      <!-- Timeline -->
+      <div class="chart-panel">
+        <h2>Motion Level Timeline</h2>
+        <div class="chart-wrap timeline">
+          <canvas id="timelineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Distribution + meta -->
+      <div class="chart-panel">
+        <h2>Alert Distribution</h2>
+        <div class="chart-wrap donut">
+          <canvas id="distChart"></canvas>
+        </div>
+        <div class="dist-meta" id="distMeta">
+          <div class="dist-meta-row">
+            <span>Total events</span><span id="metaTotal">—</span>
+          </div>
+          <div class="dist-meta-row">
+            <span>Last detected</span><span id="metaLast">—</span>
+          </div>
+          <div class="dist-meta-row">
+            <span>Peak changed %</span><span id="metaPeak">—</span>
+          </div>
+          <div class="dist-meta-row">
+            <span>Log file</span>
+            <span id="metaLog" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Alert log -->
+  <section>
+    <div class="log-panel">
+      <div class="log-header">
+        <h2>Alert Log <span class="log-path" id="logPath"></span></h2>
+        <span class="log-count" id="logCount"></span>
+      </div>
+
+      <!-- Empty state (shown when no data) -->
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📡</div>
+        <h3>No detections yet</h3>
+        <p>
+          Run <code>motion_detect</code> on the ARM target, then copy the log here:<br><br>
+          <strong>Inside QEMU guest:</strong><br>
+          <code>cat /tmp/motion_log.txt | nc 10.0.2.2 9001</code><br><br>
+          <strong>On host (before boot):</strong><br>
+          <code>nc -l 9001 &gt; /tmp/motion_log.txt</code><br><br>
+          Or test locally:<br>
+          <code>cd ~/motion_detect &amp;&amp; ./motion_detect_host motion.conf</code>
+        </p>
+      </div>
+
+      <div class="table-wrap" id="tableWrap" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Frame</th>
+              <th>Level</th>
+              <th>Changed / Total</th>
+              <th>% Changed</th>
+            </tr>
+          </thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- System Metrics -->
+  <section id="metricsSection">
+    <div class="section-title">System Metrics</div>
+
+    <div class="metrics-unavailable" id="metricsUnavailable">
+      No measurements available — run QEMU and collect metrics first.
+    </div>
+
+    <div class="metrics-grid" id="metricsGrid" style="display:none">
+
+      <!-- Memory -->
+      <div class="metric-card">
+        <h3>Memory (RAM)</h3>
+        <div class="metric-row">
+          <span class="mr-label">Total</span><span class="mr-val" id="mMemTotal">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Used</span><span class="mr-val" id="mMemUsed">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Free</span><span class="mr-val" id="mMemFree">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Cached</span><span class="mr-val" id="mMemCached">—</span>
+        </div>
+        <div class="mem-bar-wrap">
+          <div class="mem-bar-label" id="mMemBarLabel">RAM usage</div>
+          <div class="mem-bar-track">
+            <div class="mem-bar" id="mMemBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance -->
+      <div class="metric-card">
+        <h3>Processing Performance</h3>
+        <div class="metric-row">
+          <span class="mr-label">Frames processed</span><span class="mr-val" id="mFrames">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Total time</span><span class="mr-val" id="mElapsed">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Time per frame</span><span class="mr-val" id="mPerFrame">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Collected at</span><span class="mr-val" id="mCollectedAt" style="font-size:10px">—</span>
+        </div>
+      </div>
+
+      <!-- CPU -->
+      <div class="metric-card">
+        <h3>CPU Info</h3>
+        <div class="metric-row">
+          <span class="mr-label">Model</span><span class="mr-val" id="mCpuModel">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Cores</span><span class="mr-val" id="mCpuCores">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Hardware</span><span class="mr-val" id="mCpuHw">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">BogoMIPS</span><span class="mr-val" id="mBogo">—</span>
+        </div>
+      </div>
+
+      <!-- Binary & System -->
+      <div class="metric-card">
+        <h3>Binary &amp; System</h3>
+        <div class="metric-row">
+          <span class="mr-label">Initramfs size</span><span class="mr-val" id="mInitramfs">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Binary size</span><span class="mr-val" id="mBinary">—</span>
+        </div>
+        <div class="metric-row">
+          <span class="mr-label">Metrics file</span>
+          <span class="mr-val" id="mFile" title=""
+                style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────────── -->
+<footer>
+  <span id="lastUpdated">Waiting for data…</span>
+  <span id="footerLog"></span>
+</footer>
+
+<!-- ── JavaScript ───────────────────────────────────────────────────────────── -->
+<script>
+"use strict";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+const CLR = {
+  NONE:   { solid: "#6e7681", alpha: "rgba(110,118,129,.18)" },
+  LOW:    { solid: "#3fb950", alpha: "rgba(63,185,80,.18)"   },
+  MEDIUM: { solid: "#d29922", alpha: "rgba(210,153,34,.18)"  },
+  HIGH:   { solid: "#f85149", alpha: "rgba(248,81,73,.18)"   },
+};
+const LEVEL_N = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3 };
+const LEVELS  = ["NONE", "LOW", "MEDIUM", "HIGH"];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let timelineChart, distChart;
+let lastTotal    = -1;          // detect new events without re-rendering
+let refreshTimer = null;
+let refreshMs    = 2000;
+
+// ── Chart initialisation ──────────────────────────────────────────────────────
+Chart.defaults.color           = "#8b949e";
+Chart.defaults.borderColor     = "#30363d";
+Chart.defaults.font.family     = "'JetBrains Mono', monospace";
+
+function initTimelineChart() {
+  const ctx = document.getElementById("timelineChart").getContext("2d");
+  timelineChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels:   [],
+      datasets: [{
+        data:            [],
+        backgroundColor: [],
+        borderColor:     [],
+        borderWidth:     1,
+        borderRadius:    4,
+        borderSkipped:   false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation:  { duration: 250 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => " Motion: " + (LEVELS[ctx.raw] ?? ctx.raw),
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid:  { color: "#30363d" },
+          ticks: { color: "#8b949e", font: { size: 10 }, maxRotation: 45 },
+        },
+        y: {
+          min: 0, max: 3,
+          grid:  { color: "#30363d" },
+          ticks: {
+            color: "#8b949e",
+            stepSize: 1,
+            callback: v => LEVELS[v] ?? v,
+          }
+        }
+      }
+    }
+  });
+}
+
+function initDistChart() {
+  const ctx = document.getElementById("distChart").getContext("2d");
+  distChart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels:   LEVELS,
+      datasets: [{
+        data:            [0, 0, 0, 0],
+        backgroundColor: LEVELS.map(l => CLR[l].solid),
+        borderColor:     "#161b22",
+        borderWidth:     3,
+        hoverOffset:     6,
+      }]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      animation:           { duration: 250 },
+      cutout:              "62%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels:   { color: "#c9d1d9", padding: 10, font: { size: 11 }, boxWidth: 12 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} event${ctx.raw !== 1 ? "s" : ""}`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Update helpers ────────────────────────────────────────────────────────────
+function pct(n, total) {
+  return total > 0 ? Math.round(n / total * 100) : 0;
+}
+
+function updateStats(counts, total) {
+  for (const lvl of LEVELS) {
+    const lc = lvl.toLowerCase();
+    const n  = counts[lvl] ?? 0;
+    document.getElementById("count" + lvl.charAt(0) + lvl.slice(1).toLowerCase()
+      .replace(/^\w/, c => c.toUpperCase())).textContent = n;
+    document.getElementById("pct"   + lvl.charAt(0) + lvl.slice(1).toLowerCase()
+      .replace(/^\w/, c => c.toUpperCase())).textContent =
+        total > 0 ? `${pct(n, total)}% of events` : "—";
+  }
+}
+
+function updateCards(counts, total) {
+  const ids = { NONE:"None", LOW:"Low", MEDIUM:"Medium", HIGH:"High" };
+  for (const [lvl, suffix] of Object.entries(ids)) {
+    const n = counts[lvl] ?? 0;
+    document.getElementById("count" + suffix).textContent = n;
+    document.getElementById("pct"   + suffix).textContent =
+      total > 0 ? `${pct(n, total)}% of events` : "—";
+  }
+}
+
+function updateTimeline(events) {
+  const labels  = events.map(e =>
+    e.frame.replace(/^frame_0*/, "f").replace(".pgm", "")
+  );
+  const values  = events.map(e => LEVEL_N[e.level] ?? 0);
+  const colors  = events.map(e => CLR[e.level]?.solid ?? "#6e7681");
+
+  timelineChart.data.labels                             = labels;
+  timelineChart.data.datasets[0].data                  = values;
+  timelineChart.data.datasets[0].backgroundColor       = colors.map(c => c + "bb");
+  timelineChart.data.datasets[0].borderColor            = colors;
+  timelineChart.update("none");
+}
+
+function updateDist(counts) {
+  distChart.data.datasets[0].data = LEVELS.map(l => counts[l] ?? 0);
+  distChart.update("none");
+}
+
+function updateTable(events) {
+  const tbody   = document.getElementById("logBody");
+  const rows    = [...events].reverse().slice(0, 300); // newest first, cap at 300
+
+  tbody.innerHTML = rows.map(e => {
+    const lc   = e.level.toLowerCase();
+    const clr  = CLR[e.level]?.solid ?? "#6e7681";
+    const barW = Math.min(e.pct, 100).toFixed(1);
+    return `
+<tr class="level-${lc}">
+  <td>${e.ts}</td>
+  <td>${e.frame}</td>
+  <td><span class="badge badge-${lc}">${e.level}</span></td>
+  <td>${e.changed.toLocaleString()} / ${e.total.toLocaleString()}</td>
+  <td>
+    <div class="pct-bar-wrap">
+      <div class="pct-bar-track">
+        <div class="pct-bar" style="width:${barW}%;background:${clr}"></div>
+      </div>
+      <span class="pct-val">${e.pct.toFixed(1)}%</span>
+    </div>
+  </td>
+</tr>`;
+  }).join("");
+}
+
+function updateMeta(events, data) {
+  document.getElementById("metaTotal").textContent = data.total;
+  document.getElementById("metaLog").textContent   = data.log_file;
+  document.getElementById("metaLog").title         = data.log_file;
+
+  if (events.length > 0) {
+    const last = events[events.length - 1];
+    document.getElementById("metaLast").textContent =
+      `${last.level} @ ${last.ts.split("T")[1]?.replace("Z","") ?? last.ts}`;
+
+    const peak = events.reduce((m, e) => e.pct > m ? e.pct : m, 0);
+    document.getElementById("metaPeak").textContent = peak.toFixed(1) + "%";
+  } else {
+    document.getElementById("metaLast").textContent = "—";
+    document.getElementById("metaPeak").textContent = "—";
+  }
+}
+
+// ── Main update ───────────────────────────────────────────────────────────────
+function applyData(data) {
+  const { events, counts, total, log_file, server_ts } = data;
+
+  updateCards(counts, total);
+  updateDist(counts);
+  updateMeta(events, data);
+
+  // Re-render timeline + table only when event count changes
+  if (total !== lastTotal) {
+    updateTimeline(events);
+    updateTable(events);
+
+    const empty = document.getElementById("emptyState");
+    const wrap  = document.getElementById("tableWrap");
+    if (total === 0) { empty.style.display = "block"; wrap.style.display = "none"; }
+    else             { empty.style.display = "none";  wrap.style.display = "block"; }
+
+    lastTotal = total;
+  }
+
+  document.getElementById("logPath").textContent  = log_file;
+  document.getElementById("logCount").textContent =
+    total > 0 ? `${total} event${total !== 1 ? "s" : ""}` : "";
+  document.getElementById("footerLog").textContent = log_file;
+
+  const d = new Date(server_ts * 1000);
+  document.getElementById("lastUpdated").textContent =
+    `Last updated: ${d.toLocaleTimeString()}`;
+}
+
+// ── System Metrics ────────────────────────────────────────────────────────────
+async function fetchMetrics() {
+  try {
+    const res  = await fetch("/api/metrics", { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    applyMetrics(data);
+  } catch (_) {}
+}
+
+function applyMetrics(data) {
+  const unavail = document.getElementById("metricsUnavailable");
+  const grid    = document.getElementById("metricsGrid");
+
+  if (!data.available) {
+    unavail.style.display = "block";
+    grid.style.display    = "none";
+    return;
+  }
+
+  unavail.style.display = "none";
+  grid.style.display    = "grid";
+
+  const p  = data.parsed || {};
+  const mb = v => v ? v + " MB" : "—";
+
+  document.getElementById("mMemTotal").textContent  = mb(p.MEM_TOTAL_MB);
+  document.getElementById("mMemUsed").textContent   = mb(p.MEM_USED_MB);
+  document.getElementById("mMemFree").textContent   = mb(p.MEM_FREE_MB);
+  document.getElementById("mMemCached").textContent = mb(p.MEM_CACHED_MB);
+
+  const total   = parseFloat(p.MEM_TOTAL_MB) || 0;
+  const used    = parseFloat(p.MEM_USED_MB)  || 0;
+  const usedPct = total > 0 ? Math.round(used / total * 100) : 0;
+  document.getElementById("mMemBar").style.width       = usedPct + "%";
+  document.getElementById("mMemBarLabel").textContent  = `RAM usage — ${usedPct}% used`;
+
+  document.getElementById("mFrames").textContent  = p.FRAMES_PROCESSED || "—";
+  document.getElementById("mElapsed").textContent = p.ELAPSED_SECONDS ? p.ELAPSED_SECONDS + " s" : "—";
+  document.getElementById("mPerFrame").textContent = p.PER_FRAME_MS   ? p.PER_FRAME_MS + " ms" : "—";
+  document.getElementById("mCollectedAt").textContent = p.COLLECTED_AT
+    ? p.COLLECTED_AT.replace("T", " ").replace("Z", " UTC") : "—";
+
+  document.getElementById("mCpuModel").textContent = p.CPU_MODEL    || "—";
+  document.getElementById("mCpuCores").textContent = p.CPU_CORES    || "—";
+  document.getElementById("mCpuHw").textContent    = p.CPU_HW       || "—";
+  document.getElementById("mBogo").textContent     = p.CPU_BOGOMIPS ? p.CPU_BOGOMIPS + " MIPS" : "—";
+
+  document.getElementById("mInitramfs").textContent = p.INITRAMFS_SIZE || "—";
+  document.getElementById("mBinary").textContent    = p.BINARY_SIZE    || "—";
+  const mFile = document.getElementById("mFile");
+  mFile.textContent = data.file || "—";
+  mFile.title       = data.file || "";
+}
+
+// ── Fetch & live badge ────────────────────────────────────────────────────────
+function setLive(online) {
+  const badge = document.getElementById("liveBadge");
+  const label = document.getElementById("liveLabel");
+  badge.className = "live-badge " + (online ? "live" : "offline");
+  label.textContent = online ? "LIVE" : "OFFLINE";
+}
+
+async function fetchAndUpdate() {
+  try {
+    const res  = await fetch("/api/log", { cache: "no-store" });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    applyData(data);
+    setLive(true);
+  } catch (err) {
+    setLive(false);
+  }
+}
+
+// ── Scheduling ────────────────────────────────────────────────────────────────
+function startRefresh(ms) {
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (ms > 0) refreshTimer = setInterval(fetchAndUpdate, ms);
+}
+
+document.getElementById("refreshRate").addEventListener("change", e => {
+  refreshMs = parseInt(e.target.value, 10);
+  startRefresh(refreshMs);
+  // Immediate fetch on change (unless paused)
+  if (refreshMs > 0) fetchAndUpdate();
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  initTimelineChart();
+  initDistChart();
+  fetchAndUpdate();
+  startRefresh(refreshMs);
+  fetchMetrics();
+  setInterval(fetchMetrics, 30000);
+});
+</script>
+</body>
+</html>

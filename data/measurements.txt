@@ -1,0 +1,88 @@
+# ARM Cortex-A15 Motion Detection System — Measurements
+# Generated: 2026-06-07T10:54:58Z
+# Platform:  QEMU vexpress-a15 (512 MB RAM)
+
+[PARSED]
+MEM_TOTAL_MB=480
+MEM_USED_MB=25
+MEM_FREE_MB=459
+MEM_AVAIL_MB=455
+MEM_BUFFERS_MB=0
+MEM_CACHED_MB=4
+CPU_MODEL=ARMv7 Processor rev 0 (v7l)
+CPU_CORES=1
+CPU_HW=ARM-Versatile Express
+CPU_BOGOMIPS=125.00
+ELAPSED_SECONDS=1.47
+FRAMES_PROCESSED=199
+PER_FRAME_MS=7.39
+COLLECTED_AT=2026-06-07T10:54:58Z
+
+[HOST]
+INITRAMFS_BYTES=2306736
+INITRAMFS_SIZE=2M
+BINARY_BYTES=410844
+BINARY_SIZE=401K
+
+[RAW_FREE_M]
+n/a
+
+[RAW_MEMINFO]
+MemTotal:         491844 kB
+MemFree:          470316 kB
+MemAvailable:     466580 kB
+Buffers:               0 kB
+Cached:             4528 kB
+SwapCached:            0 kB
+Active:                4 kB
+Inactive:             60 kB
+Active(anon):          4 kB
+Inactive(anon):       60 kB
+Active(file):          0 kB
+Inactive(file):        0 kB
+Unevictable:        4528 kB
+Mlocked:               0 kB
+HighTotal:             0 kB
+HighFree:              0 kB
+LowTotal:         491844 kB
+LowFree:          470316 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+Dirty:                 0 kB
+Writeback:             0 kB
+AnonPages:            60 kB
+Mapped:             1172 kB
+Shmem:                 0 kB
+KReclaimable:        892 kB
+Slab:               6072 kB
+SReclaimable:        892 kB
+SUnreclaim:         5180 kB
+KernelStack:         400 kB
+PageTables:            8 kB
+SecPageTables:         0 kB
+NFS_Unstable:          0 kB
+Bounce:                0 kB
+WritebackTmp:          0 kB
+CommitLimit:      245920 kB
+Committed_AS:        624 kB
+VmallocTotal:     507904 kB
+VmallocUsed:        1992 kB
+VmallocChunk:          0 kB
+Percpu:              160 kB
+CmaTotal:          65536 kB
+CmaFree:           65280 kB
+
+[RAW_CPUINFO]
+processor	: 0
+model name	: ARMv7 Processor rev 0 (v7l)
+BogoMIPS	: 125.00
+Features	: half thumb fastmult vfp edsp thumbee neon vfpv3 tls vfpv4 idiva idivt vfpd32 lpae evtstrm 
+CPU implementer	: 0x41
+CPU architecture: 7
+CPU variant	: 0x4
+CPU part	: 0xc0f
+CPU revision	: 0
+
+Hardware	: ARM-Versatile Express
+Revision	: 0000
+Serial		: 0000000000000000

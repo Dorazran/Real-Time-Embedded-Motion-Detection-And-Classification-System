@@ -1,0 +1,39 @@
+# ── Build artefacts ────────────────────────────────────────────────────────────
+motion_detect
+motion_detect_host
+src/*.o
+src/*.d
+build/rootfs/
+build/initramfs*.cpio.gz
+build/initramfs*.cpio
+
+# ── Generated output (reproducible from scripts) ───────────────────────────────
+# Uncomment if you prefer NOT to track the generated report:
+# docs/final_report.docx
+
+# ── Runtime / log files ────────────────────────────────────────────────────────
+/tmp/
+*.log
+
+# ── Node.js ───────────────────────────────────────────────────────────────────
+scripts/node_modules/
+scripts/package-lock.json
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
