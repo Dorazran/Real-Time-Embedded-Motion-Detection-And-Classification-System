@@ -170,7 +170,7 @@ qemu-system-arm \
 
 # 7. Start the web dashboard (on host, separate terminal)
 python3 dashboard/server.py /tmp/motion_log.txt 8080
-# Open http://localhost:8080
+# Open http://localhost:8080 in your browser to view the results
 ```
 
 ---
@@ -279,6 +279,8 @@ All measurements taken inside QEMU vexpress-a15 (2026-06-07):
 ---
 
 ## Web Dashboard
+
+> **Live results:** [http://localhost:8080](http://localhost:8080) — open this after starting the server below.
 
 ```bash
 # Serve the dashboard pointing at a log file
