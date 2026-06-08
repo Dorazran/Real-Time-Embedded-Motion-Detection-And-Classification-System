@@ -85,7 +85,7 @@ motion-detect-arm/
 │   └── index.html              # Chart.js single-page dashboard
 │
 ├── scripts/
-│   ├── generate_frames.py      # Generate 200 PGM test frames (reproducible)
+│   ├── generate_frames.py      # Generate 200 PGM test frames 
 │   ├── make_assets.py          # Generate PNG screenshots via Pillow
 │   ├── generate_report.js      # Generate Word report (.docx) via docx npm
 │   └── package.json            # Node.js deps (docx)
@@ -93,7 +93,7 @@ motion-detect-arm/
 ├── test_frames/                # 200 × frame_NNN.pgm (16×16, P2 ASCII)
 ├── docs/
 │   ├── screenshots/            # 5 PNG assets for the report
-│   └── final_report.docx       # Generated engineering report
+│  
 │
 ├── data/
 │   ├── motion_log_backup.txt   # 192 timestamped events from QEMU run
