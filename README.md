@@ -1,4 +1,4 @@
-# Real-Time Motion Detection on ARM Cortex-A15
+# Real-Time Embedded Motion Detection And Classification System on ARM Cortex-A15
 
 ![Platform](https://img.shields.io/badge/platform-ARM%20Cortex--A15-blue)
 ![Language](https://img.shields.io/badge/language-C-informational)
