@@ -350,7 +350,7 @@ node generate_report.js
 
 ## Contributing
 
-Pull requests are welcome. Please keep the **no-external-library** constraint for the ARM binary itself — only POSIX headers are permitted in `src/`. Scripts in `scripts/` and `dashboard/` may use any language/library.
+Pull requests are welcome. Please keep the **no-external-library** constraint for the ARM binary itself , only POSIX headers are permitted in `src/`. Scripts in `scripts/` and `dashboard/` may use any language/library.
 
 ---
 
