@@ -315,7 +315,7 @@ node generate_report.js
 
 ---
 
-## How It Works — Data Flow
+## Data Flow
 
 ```
 1. main.c          parse motion.conf → build EngineCtx
