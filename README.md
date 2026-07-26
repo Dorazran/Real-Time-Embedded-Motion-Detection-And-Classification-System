@@ -55,7 +55,7 @@ PGM Test Frames (200 files)
 |---------|--------|
 | **Adaptive Decision Tree** | Rolling 10-frame average; dynamic `lo = avg × 0.5`, `hi = avg × 1.5`; 3-frame warm-up with fixed thresholds |
 | **FPGA Pipeline Simulation** | 4-stage synchronous pipeline (FETCH → DIFF → COMPARE → ACCUM), 259 cycles per 16×16 frame, documented with VHDL comments |
-| **Terminal Heatmap** | UTF-8 block characters (░ ▒ ▓ █) visualise per-pixel change magnitude after each comparison |
+| **Terminal Heatmap** | UTF-8 block characters (░ ▒ ▓ █) visualize per-pixel change magnitude after each comparison |
 | **STD & SNR Metrics** | Standard deviation and signal-to-noise ratio computed from accumulated sum-of-squares; integer Babylonian sqrt |
 | **Dual Alert Channel** | UART (`/dev/ttyAMA0`) for MEDIUM+HIGH; TCP/IP (port 5000) for HIGH only |
 | **Web Dashboard** | Python HTTP server + Chart.js; live stat cards, timeline, donut chart, System Metrics panel |
@@ -120,7 +120,7 @@ motion-detect-arm/
 | Pillow (screenshots) | `pip3 install pillow` |
 | Node.js 18+ (report) | `sudo apt install nodejs npm` |
 
-### Kernel + BusyBox (Lab 3 dependency)
+### Kernel + BusyBox 
 `build.sh` expects a pre-built ARM kernel and BusyBox rootfs at `$LAB3_DIR`
 (default: `~/embedded_lab3`). Override with:
 
